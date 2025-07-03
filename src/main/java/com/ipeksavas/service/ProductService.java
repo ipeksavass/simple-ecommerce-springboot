@@ -51,10 +51,10 @@ public class ProductService {
 		Product product = productRepository.findById(productId)
 				.orElseThrow(() -> new IllegalArgumentException("ÜRÜN BULUNAMADI"));
 		
-		//ürün tablosundan bir ürün direkt silinmiyor o yüzden sepetlerden siliyoruz öncelikle
+		//ürün tablosundan bir ürün direkt silinemiyor o yüzden öncelikle sepetlerden siliyoruz.
 		List<CartItem> relatedCartItems = cartItemRepository.findByProductId(productId);
 		cartItemRepository.deleteAll(relatedCartItems);
-		//sepetlerden ürün çıkınca ürünü silebiliyoruz
+		//ürün sepetlerden çıkınca ürünü silebiliyoruz.
 		productRepository.delete(product);
 	}
 }

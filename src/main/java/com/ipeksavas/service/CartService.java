@@ -58,9 +58,9 @@ public class CartService {
 		}else {// yani içeride eklemek istediğimiz üründen yok ise yeni bir ürün eklicez.
 			CartItem newItem = new CartItem();
 			newItem.setQuantity(request.getQuantity());// quantity özelliği direkt carItem classına ait
-			newItem.setProduct(product);//product ve cart özellikleri kendş classlarından türetildiği için bu şekilde oldu
+			newItem.setProduct(product);//product ve cart özellikleri kendi classlarından türetildiği için bu şekilde oldu
 			newItem.setCart(cart);
-			cart.getItems().add(newItem);//cart classından türetilen neslerin bir listesi var burda  listeye ekleme yaptım.
+			cart.getItems().add(newItem);//cart classından türetilen neslerin bir listesi var burada  listeye ekleme yaptım.
 		}
 		//Sepete ürün eklemiş olduk yani sepetin toplam fiyatı değişti onu güncellemeliyiz.
 		BigDecimal addedPrice = product.getPrice().multiply(BigDecimal.valueOf(request.getQuantity()));
@@ -70,21 +70,21 @@ public class CartService {
 //		// Stoktan düşer ve veri tabanına yansıtır
 //	    int updatedStock = product.getStock() - request.getQuantity();
 //	    product.setStock(updatedStock);
-//	    productRepository.save(product); // Stok güncellemesini veritabanına yansıtır.
+//	    productRepository.save(product); // Stok güncellemesini veri tabanına yansıtır.
 		
 	}
 	
 	public GetCartResponse getCartByCustomerId(Long customerId){
-		Customer customer = customerRepository.findById(customerId)  //customer repodan verilen idli custı çektim
-		.orElseThrow(() -> new IllegalArgumentException("MÜŞTERİ BULUNAMADI!!!"));//böyle bir idde cust yoksa exception fırlattım.
+		Customer customer = customerRepository.findById(customerId)//customer repodan verilen idli müşteriyi çektim.
+		.orElseThrow(() -> new IllegalArgumentException("MÜŞTERİ BULUNAMADI!!!"));
+		//Bu id ile bir müşteri yoksa exception fırlatıyoruz.
 		
-		Cart cart = customer.getCart();//customerın cart classından üretilmiş fieldı var.
+		Cart cart = customer.getCart();//customerın cart classından türetilmiş fieldı var.
 		
 		GetCartResponse response = new GetCartResponse();
 		response.setTotalPrice(cart.getTotalPrice());//toplam sepet tutarını çektim.
 		
-		
-		//cart classından ait nesleri cartItenDtoya döndürmem gerektiği için tür dönüşümü yapıyorum 
+		//cart classına ait nesleri cartItemDtoya döndürmem gerektiği için tür dönüşümü yapıyorum. 
 		List<GetCartResponse.CartItemDto> itemDto = cart.getItems().stream()
 				.map(item -> {
 					GetCartResponse.CartItemDto dto = new GetCartResponse.CartItemDto();
@@ -119,7 +119,8 @@ public class CartService {
 			throw new IllegalArgumentException("BU ÜRÜN SEPETTE BULUNAMADI!!!");
 		}
 		
-		CartItem cartItem = optItem.get();//optItem aslında bir kabuk o nesne üzerinden işlem yapmak için dışarı çıkartmalıyız get ile
+		CartItem cartItem = optItem.get();
+		//optItem aslında bir kabuk o nesne üzerinden işlem yapmak için get() ile dışarı çıkartmalıyız.
 		
 		if(cartItem.getQuantity() < request.getQuantity()) {
 			throw new IllegalArgumentException("SEPETTE BU KADAR ÜRÜN YOK!!!");
@@ -129,7 +130,7 @@ public class CartService {
 		cartItem.setQuantity(cartItem.getQuantity() - request.getQuantity());
 		
 		if(cartItem.getQuantity() == 0) {//eger sepette o üründen hiç kalmadıysa o ürünün
-			cart.getItems().remove(cartItem);   // adını sepetimizden silmemiz gerekir
+			cart.getItems().remove(cartItem);   // adını sepetimizden silmemiz gerekir.
 		}
 		
 		BigDecimal removedPrice = product.getPrice().multiply(BigDecimal.valueOf(request.getQuantity()));
