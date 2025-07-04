@@ -7,6 +7,8 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import com.ipeksavas.dto.request.PlaceOrderRequest;
+import com.ipeksavas.dto.response.GetAllOrdersResponse;
+import com.ipeksavas.dto.response.GetOrderResponse;
 import com.ipeksavas.model.Cart;
 import com.ipeksavas.model.CartItem;
 import com.ipeksavas.model.Customer;
@@ -88,4 +90,58 @@ public class OrderService {
 		cart.setTotalPrice(BigDecimal.ZERO);
 		
 	}
+	
+	public GetOrderResponse getOrderForCode(Long orderId) {
+		Order order = orderRepository.findById(orderId)//İstenilen siparişi id üzerinden çektik order nesnesine koyduk.
+				.orElseThrow(() -> new IllegalArgumentException("Sipariş bulunamadı"));
+		
+		GetOrderResponse response = new GetOrderResponse();
+		response.setTotalPrice(order.getTotalPrice());//Orderı zaten çekmiştik direkt içinden totalPrice bilgisini aldık.
+		
+		List<GetOrderResponse.OrderItemDto> itemsDtos = order.getOrderItems().stream()
+			.map(item -> {
+				GetOrderResponse.OrderItemDto dto = new GetOrderResponse.OrderItemDto();
+				dto.setName(item.getProduct().getName());
+				dto.setPriceAtPurchase(item.getPriceAtPurchase());
+				dto.setQuantity(item.getQuantity());
+				return dto;//oluşturulan ve içi doldurulan her dto itemsDtos listesinin bir parçası haline geliyor.
+			}).toList();
+		
+		response.setItems(itemsDtos);//oluşturulan itemsDtos listesini GetOrderResponse türünde olan response nesnesine yerleştiriyoruz.
+		return response;//Ve dönüş tipine uygun bir formatta bilgileri döndürüyoruz.
+		
+	}
+	
+	public GetAllOrdersResponse getAllOrdersForCustomer(Long customerId) {
+		Customer customer = customerRepository.findById(customerId)
+				.orElseThrow(() -> new IllegalArgumentException("Müşteri bulunamadı"));
+		
+		List<Order> orders = customer.getOrders();//Müşterinin siparişlerini listeye çekiyorum.
+		
+		List<GetAllOrdersResponse.OrderDto> orderDtos = orders.stream()//Müşterinin siparişlerinde teker teker gezinip tür dönüşümlerini yapıyorum.
+				.map(order -> {
+					GetAllOrdersResponse.OrderDto orderDto = new GetAllOrdersResponse.OrderDto();
+					orderDto.setOrderId(order.getId());
+					orderDto.setTotalPrice(order.getTotalPrice());
+					orderDto.setCreatedAt(order.getCreatedAt().toString());
+					//orderDtoların içini dolduruyoruz.
+					List<GetAllOrdersResponse.OrderItemDto> orderItemsDtos =order.getOrderItems().stream()
+							.map(item ->{
+								GetAllOrdersResponse.OrderItemDto orderItemDto = new GetAllOrdersResponse.OrderItemDto();
+								orderItemDto.setProductName(item.getProduct().getName());
+								orderItemDto.setPriceAtPurchase(item.getPriceAtPurchase());
+								orderItemDto.setQuantity(item.getQuantity());
+								return orderItemDto;//Bir siparişin içindeki ürün satırlarını tutan dtoyu döner.
+							}).toList();
+					
+					orderDto.setItems(orderItemsDtos);
+					return orderDto;//Bir siparişin tüm verilerini tutan dtoyu döner.
+			
+		}).toList();
+		GetAllOrdersResponse response = new GetAllOrdersResponse();
+		response.setOrders(orderDtos);
+		return response;
+	}
+	
+	
 }
