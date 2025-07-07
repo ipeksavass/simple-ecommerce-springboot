@@ -11,24 +11,22 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 @Service
-@RequiredArgsConstructor  //@Autowired yerine kullandım daha guvenliymis 
+@RequiredArgsConstructor  //it's safer than @Autowired 
 public class CustomerService {
 	private final CustomerRepository customerRepository;
 	
-	@Transactional//herhangi bir islemde hata olursa yaptigi her seyi geri alir ve veri tabani temiz kalmis olur.
+	@Transactional//If there is an error in any operation, it will undo everything it has done and the database will remain clean.
 	public void addCustomer(CustomerRequest request) {
 		if(customerRepository.existsByEmail(request.getEmail())) {
-			throw new IllegalArgumentException("Bu eposta adresi sistemde kayıtlıdır.");
+			throw new IllegalArgumentException("This email address is registered in the system.");
 		}
-		
 		Customer customer = new Customer();
 		customer.setName(request.getName());
 		customer.setEmail(request.getEmail());
 		
-		//Musteri kaydı tamamlandıgı icin bos bir sepet olusturuyorum
 		Cart cart = new Cart();
 		cart.setCustomer(customer);
-		customer.setCart(cart);//cift taraflı iliski kuruyorum
+		customer.setCart(cart);//I have a two-way relationship
 		
 		customerRepository.save(customer);
 	}

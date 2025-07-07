@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 
 import com.ipeksavas.dto.request.ProductRequest;
 import com.ipeksavas.dto.request.UpdateProductRequest;
+import com.ipeksavas.dto.response.ProductResponse;
 import com.ipeksavas.model.CartItem;
 import com.ipeksavas.model.Product;
 import com.ipeksavas.repository.CartItemRepository;
@@ -31,14 +32,20 @@ public class ProductService {
 		
 	}
 	
-	public Product getProductById(Long productId) {
-		return productRepository.findById(productId)
-				.orElseThrow(() -> new IllegalArgumentException("ÜRÜN BULUNAMADI"));
+	public ProductResponse getProductById(Long productId) {
+		Product product = productRepository.findById(productId)
+				.orElseThrow(() -> new IllegalArgumentException("PRODUCT NOT FOUND"));
+		
+		ProductResponse response = new ProductResponse();
+		response.setName(product.getName());
+		response.setPrice(product.getPrice());
+		response.setStock(product.getStock());
+		return response;
 	}
 	
 	public void updateProductById(Long id, UpdateProductRequest request) {
 		Product product = productRepository.findById(id)
-				.orElseThrow(() -> new IllegalArgumentException("ÜRÜN BULUNAMADI"));
+				.orElseThrow(() -> new IllegalArgumentException("PRODUCT NOT FOUND"));
 		
 		product.setName(request.getName());
 		product.setPrice(request.getPrice());
@@ -49,12 +56,11 @@ public class ProductService {
 	
 	public void deleteProductById(Long productId) {
 		Product product = productRepository.findById(productId)
-				.orElseThrow(() -> new IllegalArgumentException("ÜRÜN BULUNAMADI"));
+				.orElseThrow(() -> new IllegalArgumentException("PRODUCT NOT FOUND"));
 		
-		//ürün tablosundan bir ürün direkt silinemiyor o yüzden öncelikle sepetlerden siliyoruz.
+		//A product cannot be deleted directly from the product table, it must first be removed from the baskets
 		List<CartItem> relatedCartItems = cartItemRepository.findByProductId(productId);
 		cartItemRepository.deleteAll(relatedCartItems);
-		//ürün sepetlerden çıkınca ürünü silebiliyoruz.
 		productRepository.delete(product);
 	}
 }

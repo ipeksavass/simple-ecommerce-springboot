@@ -33,70 +33,60 @@ public class OrderService {
 	@Transactional
 	public void placeOrder(PlaceOrderRequest request) {
     	Long id = request.getCustomerId();
-    	//Öncelikle müşteriyi getiriyoruz.
 		Customer customer = customerRepository.findById(id)
-				.orElseThrow(() -> new IllegalArgumentException("Müşteri bulunamadı"));
-		
-		//Müşterinin sepetini getiriyoruz.
+				.orElseThrow(() -> new IllegalArgumentException("NO CUSTOMER FOUND"));
+	
 		Cart cart = customer.getCart();
 		List<CartItem> cartItems = cart.getItems();
-		
-		//Sepette ürün var mı kontrol ediyorum.
+
 		if(cartItems.isEmpty()) {
-			throw new IllegalStateException("Sepet boş sipariş verilemez");
+			throw new IllegalStateException("BASKET EMPTY NO ORDER CAN BE PLACED");
 		}
-		
-		//Order entitysinin içinde Customer sınıfından türetilen bir customer fieldı var.
+
 		Order order = new Order();
 		order.setCustomer(customer);
-		
-		//Siparişin başlangıç fiyatı 0dan başlatılıyor.
+
 		BigDecimal totalPrice = BigDecimal.ZERO;
-		//Sipariş içindeki ürünleri tutmak için bir array list oluşturdum.
+
 		List<OrderItem> orderItems = new ArrayList<>();
 		//  {entity,   x,     list}
 		for(CartItem item: cart.getItems()) { 
 			Product product = item.getProduct();
 			if(product.getStock() < item.getQuantity()) {
-				throw new IllegalArgumentException("Stok yetersiz: " + product.getName());
+				throw new IllegalArgumentException("INSUFFICIENT STOCK: " + product.getName());
 			}
 			
-			//Order Item fieldlarını dolduruyoruz. Tabloda görücez.
 			OrderItem orderItem = new OrderItem();
 			orderItem.setProduct(product);
 			orderItem.setOrder(order);
-			orderItem.setQuantity(item.getQuantity());//sepetteki ürün miktarı kadar ürünü siparişe ekliyoruz.
+			orderItem.setQuantity(item.getQuantity());
 			orderItem.setPriceAtPurchase(product.getPrice());
 			orderItems.add(orderItem);
 			
-			//sipariş verdiğimiz ürün miktarı stoktan düşürülüyor.
+			//The quantity of the product we order is being reduced from stock.
 			product.setStock(product.getStock() - item.getQuantity());
 			productRepository.save(product);
 			
-			//fiyat güncellemesi
+			//Price update
 			BigDecimal itemTotal = product.getPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
 			totalPrice = totalPrice.add(itemTotal);
-			
 		}
 		
 		order.setOrderItems(orderItems);
 		order.setTotalPrice(totalPrice);
 		
-		//Sipariş kaydedildi.
 		orderRepository.save(order);
 		
-		//Sepet boşaltıldı.
 		cart.getItems().clear();
 		cart.setTotalPrice(BigDecimal.ZERO);
-		
 	}
 	
 	public GetOrderResponse getOrderForCode(Long orderId) {
-		Order order = orderRepository.findById(orderId)//İstenilen siparişi id üzerinden çektik order nesnesine koyduk.
-				.orElseThrow(() -> new IllegalArgumentException("Sipariş bulunamadı"));
+		Order order = orderRepository.findById(orderId)
+				.orElseThrow(() -> new IllegalArgumentException("NO ORDER FOUND"));
 		
 		GetOrderResponse response = new GetOrderResponse();
-		response.setTotalPrice(order.getTotalPrice());//Orderı zaten çekmiştik direkt içinden totalPrice bilgisini aldık.
+		response.setTotalPrice(order.getTotalPrice());
 		
 		List<GetOrderResponse.OrderItemDto> itemsDtos = order.getOrderItems().stream()
 			.map(item -> {
@@ -104,38 +94,38 @@ public class OrderService {
 				dto.setName(item.getProduct().getName());
 				dto.setPriceAtPurchase(item.getPriceAtPurchase());
 				dto.setQuantity(item.getQuantity());
-				return dto;//oluşturulan ve içi doldurulan her dto itemsDtos listesinin bir parçası haline geliyor.
+				return dto;//Each dto created and filled becomes part of the itemsDtos list.
 			}).toList();
 		
-		response.setItems(itemsDtos);//oluşturulan itemsDtos listesini GetOrderResponse türünde olan response nesnesine yerleştiriyoruz.
-		return response;//Ve dönüş tipine uygun bir formatta bilgileri döndürüyoruz.
+		response.setItems(itemsDtos);//We place the created itemsDtos list into the response object of type GetOrderResponse.
+		return response;
 		
 	}
 	
 	public GetAllOrdersResponse getAllOrdersForCustomer(Long customerId) {
 		Customer customer = customerRepository.findById(customerId)
-				.orElseThrow(() -> new IllegalArgumentException("Müşteri bulunamadı"));
+				.orElseThrow(() -> new IllegalArgumentException("NO CUSTOMER FOUND"));
 		
-		List<Order> orders = customer.getOrders();//Müşterinin siparişlerini listeye çekiyorum.
+		List<Order> orders = customer.getOrders();//I pull the customer's orders into the list.
 		
-		List<GetAllOrdersResponse.OrderDto> orderDtos = orders.stream()//Müşterinin siparişlerinde teker teker gezinip tür dönüşümlerini yapıyorum.
+		List<GetAllOrdersResponse.OrderDto> orderDtos = orders.stream()//I go through the customer's orders one by one and make type conversions.
 				.map(order -> {
 					GetAllOrdersResponse.OrderDto orderDto = new GetAllOrdersResponse.OrderDto();
 					orderDto.setOrderId(order.getId());
 					orderDto.setTotalPrice(order.getTotalPrice());
 					orderDto.setCreatedAt(order.getCreatedAt().toString());
-					//orderDtoların içini dolduruyoruz.
+		
 					List<GetAllOrdersResponse.OrderItemDto> orderItemsDtos =order.getOrderItems().stream()
 							.map(item ->{
 								GetAllOrdersResponse.OrderItemDto orderItemDto = new GetAllOrdersResponse.OrderItemDto();
 								orderItemDto.setProductName(item.getProduct().getName());
 								orderItemDto.setPriceAtPurchase(item.getPriceAtPurchase());
 								orderItemDto.setQuantity(item.getQuantity());
-								return orderItemDto;//Bir siparişin içindeki ürün satırlarını tutan dtoyu döner.
+								return orderItemDto;//Returns the dto that holds the product lines in an order.
 							}).toList();
 					
 					orderDto.setItems(orderItemsDtos);
-					return orderDto;//Bir siparişin tüm verilerini tutan dtoyu döner.
+					return orderDto;//Returns the dto that holds all the data of an order.
 			
 		}).toList();
 		GetAllOrdersResponse response = new GetAllOrdersResponse();

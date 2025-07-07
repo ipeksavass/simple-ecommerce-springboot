@@ -28,7 +28,7 @@ public class CartController {
 	@PostMapping(path = "/add-product")
 	public ResponseEntity<String> addProductToCart(@RequestBody AddProductToCartRequest request){
 		cartService.addProductToCart(request);
-		return ResponseEntity.ok("ÜRÜN SEPETE BAŞARIYLA EKLENMİŞTİR");
+		return ResponseEntity.ok("PRODUCT SUCCESSFULLY ADDED TO CART");
 	}
 	
 	@GetMapping(path = "/{customerId}")
@@ -40,19 +40,19 @@ public class CartController {
 	@PostMapping(path = "/remove-product")
 	public ResponseEntity<String> removeProductFromCart(@RequestBody RemoveProductFromCartRequest request){
 		cartService.removeProductFromCart(request);
-		return ResponseEntity.ok("ÜRÜN SEPETTEN BAŞARIYLA ÇIKARILMIŞTIR");
+		return ResponseEntity.ok("PRODUCT SUCCESSFULLY REMOVED FROM CART");
 	}
 	
 	@PutMapping(path = "/update")
 	public ResponseEntity<String> updateCartByCustomerId(@RequestBody UpdateCartRequest request){
 		cartService.updateCartByCustomerId(request);
-		return ResponseEntity.ok("SEPET GÜNCELLENMİŞTİR");
+		return ResponseEntity.ok("CART UPDATED");
 	}
 	
 	@PostMapping(path = "/empty")
 	public ResponseEntity<String> emptyCartByCustomerId(@RequestBody EmptyCartRequest request) {
 		cartService.emptyCartByCustomerId(request);
-		return ResponseEntity.ok("SEPET BOŞALTILMIŞTIR");
+		return ResponseEntity.ok("BASKET IS EMPTIED");
 	}
 	
 	

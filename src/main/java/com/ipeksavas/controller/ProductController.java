@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.ipeksavas.dto.request.ProductRequest;
 import com.ipeksavas.dto.request.UpdateProductRequest;
-import com.ipeksavas.model.Product;
+import com.ipeksavas.dto.response.ProductResponse;
 import com.ipeksavas.service.ProductService;
 
 import lombok.RequiredArgsConstructor;
@@ -27,24 +27,24 @@ public class ProductController {
 	@PostMapping(path = "/save")
 	public ResponseEntity<String> addProduct(@RequestBody ProductRequest request){
 		productService.addProduct(request);
-		return ResponseEntity.ok("Ürün başarıyla kaydedildi");
+		return ResponseEntity.ok("PRODUCT REGISTERED SUCCESSFULLY");
 	}
 	
 	@GetMapping(path = "/{id}")
-	public ResponseEntity<Product> getProductById(@PathVariable Long id){
-		Product product = productService.getProductById(id);
-		return ResponseEntity.ok(product);
+	public ResponseEntity<ProductResponse> getProductById(@PathVariable Long id){
+		ProductResponse response = productService.getProductById(id);
+		return ResponseEntity.ok(response);
 	}
 	
 	@PutMapping(path = "/update/{id}")
 	public ResponseEntity<String> updateProductById(@PathVariable Long id,@RequestBody UpdateProductRequest request){
 		productService.updateProductById(id, request);
-		return ResponseEntity.ok("Ürün başarıyla güncellendi");
+		return ResponseEntity.ok("PRODUCT UPDATED SUCCESSFULLY");
 	}
 	
 	@DeleteMapping(path = "/delete/{id}")
 	public ResponseEntity<String> deleteProductById(@PathVariable Long id){
 		productService.deleteProductById(id);
-		return ResponseEntity.ok("Ürün başarıyla silindi");
+		return ResponseEntity.ok("PRODUCT DELETED SUCCESSFULLY");
 	}
 }

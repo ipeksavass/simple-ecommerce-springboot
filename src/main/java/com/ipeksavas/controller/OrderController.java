@@ -1,7 +1,5 @@
 package com.ipeksavas.controller;
 
-import java.nio.channels.NonReadableChannelException;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,7 +25,7 @@ public class OrderController {
 	@PostMapping("/place")
 	public ResponseEntity<String> placeOrder(@RequestBody PlaceOrderRequest request) {
 		orderService.placeOrder(request);
-		return ResponseEntity.ok("Sipariş oluşturulmuştur");
+		return ResponseEntity.ok("ORDER HAS BEEN CREATED");
 	}
 	
 	@GetMapping("/{orderId}")

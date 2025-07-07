@@ -1,4 +1,4 @@
-package com.ipeksavas.dto.request;
+package com.ipeksavas.dto.response;
 
 import java.math.BigDecimal;
 
@@ -7,9 +7,11 @@ import lombok.Setter;
 
 @Setter
 @Getter
-public class UpdateProductRequest {
+public class ProductResponse {
 
 	private String name;
-	private BigDecimal price;
+	
+    private BigDecimal price;
+	
 	private int stock;
 }

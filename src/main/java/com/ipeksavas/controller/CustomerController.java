@@ -18,9 +18,9 @@ public class CustomerController {
 	
 	private final CustomerService customerService;
 	
-	@PostMapping(path = "/save")//save islemi oldugu icin post!!!
+	@PostMapping(path = "/save")//post because of save process
 	public ResponseEntity<String> addCustomer(@RequestBody CustomerRequest request){
 		customerService.addCustomer(request);
-		return ResponseEntity.ok("Müşteri kayıt edilmiştir.");
+		return ResponseEntity.ok("The client has been registered.");
 	}
 }

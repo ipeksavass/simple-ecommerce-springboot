@@ -14,6 +14,7 @@ import com.ipeksavas.dto.response.GetCartResponse;
 import com.ipeksavas.model.Cart;
 import com.ipeksavas.model.CartItem;
 import com.ipeksavas.model.Customer;
+import com.ipeksavas.model.OperationType;
 import com.ipeksavas.model.Product;
 import com.ipeksavas.repository.CartRepository;
 import com.ipeksavas.repository.CustomerRepository;
@@ -32,59 +33,28 @@ public class CartService {
 	
 	@Transactional
 	public void addProductToCart(AddProductToCartRequest request) {
-		Customer customer = customerRepository.findById(request.getCustomer_id())
-				.orElseThrow(()-> new IllegalArgumentException("MÜŞTERİ BULUNAMADI!!!"));
-		
-		Product product = productRepository.findById(request.getProduct_id())
-				.orElseThrow(() -> new IllegalArgumentException("ÜRÜN BULUNAMADI!!!"));
+		Customer customer = validateCustomer(request.getCustomer_id());
+		Product product = validateProduct(request.getProduct_id());
 		
 		if(product.getStock() < request.getQuantity()) {
-			throw new IllegalArgumentException("YETERLİ STOK YOK");
+			throw new IllegalArgumentException("INSUFFICIENT STOCKS");
 		}
 		
 		Cart cart = customer.getCart();
-		
-		//eklediğimiz ürün zaten sepetteyse sadece sayısını arttırmalıyız.
-		//Bir stream başlatıp streamin özellikleriyle tüm itemları teker teker gezerek hepsinin idsini product id
-		//ile kıyaslıyorum eğer eşitlik varsa sadece sepetteki sayısı arttırılıcak.
-		Optional<CartItem> existingItemOptional = cart.getItems().stream()
-				.filter( item -> item.getProduct().getId().equals(product.getId()))
-				.findFirst();
-		
-		if(existingItemOptional.isPresent()) {
-			CartItem existItem = existingItemOptional.get();
-			existItem.setQuantity(existItem.getQuantity() + request.getQuantity());
-			//var olan ürün sayısı ile eklenmek istenen ürün sayısı toplanıyor ve sepetteki sayı güncelleniyor.
-		}else {// yani içeride eklemek istediğimiz üründen yok ise yeni bir ürün eklicez.
-			CartItem newItem = new CartItem();
-			newItem.setQuantity(request.getQuantity());// quantity özelliği direkt carItem classına ait
-			newItem.setProduct(product);//product ve cart özellikleri kendi classlarından türetildiği için bu şekilde oldu
-			newItem.setCart(cart);
-			cart.getItems().add(newItem);//cart classından türetilen neslerin bir listesi var burada  listeye ekleme yaptım.
-		}
-		//Sepete ürün eklemiş olduk yani sepetin toplam fiyatı değişti onu güncellemeliyiz.
-		BigDecimal addedPrice = product.getPrice().multiply(BigDecimal.valueOf(request.getQuantity()));
-		cart.setTotalPrice(cart.getTotalPrice().add(addedPrice));
-		
-//		//sepete eklenince stok azalmamalı o yüzden bu kodu kaldırdım.
-//		// Stoktan düşer ve veri tabanına yansıtır
-//	    int updatedStock = product.getStock() - request.getQuantity();
-//	    product.setStock(updatedStock);
-//	    productRepository.save(product); // Stok güncellemesini veri tabanına yansıtır.
-		
+	
+		addOrCreateCartItem(cart, product, request.getQuantity());
+		updateCartTotalPrice(cart, product, request.getQuantity(),OperationType.ADD);
+
 	}
 	
 	public GetCartResponse getCartByCustomerId(Long customerId){
-		Customer customer = customerRepository.findById(customerId)//customer repodan verilen idli müşteriyi çektim.
-		.orElseThrow(() -> new IllegalArgumentException("MÜŞTERİ BULUNAMADI!!!"));
-		//Bu id ile bir müşteri yoksa exception fırlatıyoruz.
-		
-		Cart cart = customer.getCart();//customerın cart classından türetilmiş fieldı var.
+		Customer customer = validateCustomer(customerId);
+		Cart cart = customer.getCart();//customer has a field derived from the cart class.
 		
 		GetCartResponse response = new GetCartResponse();
-		response.setTotalPrice(cart.getTotalPrice());//toplam sepet tutarını çektim.
+		response.setTotalPrice(cart.getTotalPrice());
 		
-		//cart classına ait nesleri cartItemDtoya döndürmem gerektiği için tür dönüşümü yapıyorum. 
+		//type conversion
 		List<GetCartResponse.CartItemDto> itemDto = cart.getItems().stream()
 				.map(item -> {
 					GetCartResponse.CartItemDto dto = new GetCartResponse.CartItemDto();
@@ -92,9 +62,7 @@ public class CartService {
 					dto.setProductName(item.getProduct().getName());
 					dto.setUnitPrice(item.getProduct().getPrice());
 					dto.setQuantity(item.getQuantity());
-					
 					return dto;
-				
 				})
 				.toList();
 		response.setItems(itemDto);
@@ -103,83 +71,98 @@ public class CartService {
 	
 	@Transactional
 	public void removeProductFromCart(RemoveProductFromCartRequest request) {
-		Customer customer = customerRepository.findById(request.getCustomerId())
-				.orElseThrow(() -> new IllegalArgumentException("MÜŞTERİ BULUNMADI!!!"));
-		
-		Product product = productRepository.findById(request.getProductId())
-				.orElseThrow(() -> new IllegalArgumentException("ÜRÜN TABLOSUNDA BÖYLE BİR ÜRÜN YOK"));
-		
+		Customer customer = validateCustomer(request.getCustomerId());
+		Product product = validateProduct(request.getProductId());
 		Cart cart = customer.getCart();
 		
-		Optional<CartItem> optItem = cart.getItems().stream()
-				.filter(item -> item.getProduct().getId().equals(product.getId()))
-				.findFirst();
-		
-		if(optItem.isEmpty()) {
-			throw new IllegalArgumentException("BU ÜRÜN SEPETTE BULUNAMADI!!!");
-		}
-		
-		CartItem cartItem = optItem.get();
-		//optItem aslında bir kabuk o nesne üzerinden işlem yapmak için get() ile dışarı çıkartmalıyız.
-		
-		if(cartItem.getQuantity() < request.getQuantity()) {
-			throw new IllegalArgumentException("SEPETTE BU KADAR ÜRÜN YOK!!!");
-		}
-		
-		//sepetten çıkartılmak istenen ürünler çıkartıldı.
-		cartItem.setQuantity(cartItem.getQuantity() - request.getQuantity());
-		
-		if(cartItem.getQuantity() == 0) {//eger sepette o üründen hiç kalmadıysa o ürünün
-			cart.getItems().remove(cartItem);   // adını sepetimizden silmemiz gerekir.
-		}
-		
-		BigDecimal removedPrice = product.getPrice().multiply(BigDecimal.valueOf(request.getQuantity()));
-		cart.setTotalPrice(cart.getTotalPrice().subtract(removedPrice));//subtract kullanıyoruz çünkü bigdecimal türünde sayılar - kullanılmaz burada
-		
-		//sepetten bir şey çıkarılması stokları etkilemediği için bu kodu kaldırdım.
-//		int updatedStock = product.getStock() + request.getQuantity();
-//		product.setStock(updatedStock);
-//		productRepository.save(product);
-		
+		CartItem cartItem = findCartItem(cart, product.getId());
+		updateCartItemQuantityOrRemove(cart, cartItem, request.getQuantity());
+		updateCartTotalPrice(cart, product, request.getQuantity(),OperationType.SUBTRACT);
 	}
 	
 	@Transactional
 	public void updateCartByCustomerId(UpdateCartRequest request) {
-		Customer customer = customerRepository.findById(request.getCustomerId())
-				.orElseThrow(() -> new IllegalArgumentException("MÜŞTERİ BULUNAMADI!!!"));
-		
-		Product product = productRepository.findById(request.getProductId())
-				.orElseThrow(() -> new IllegalArgumentException("ÜRÜN KAYDI YOK!!!"));
+		Customer customer = validateCustomer(request.getCustomerId());
+		Product product = validateProduct(request.getProductId());
 		
 		Cart cart = customer.getCart();
-		
-		Optional<CartItem> optItem = cart.getItems().stream()
-				.filter(item -> item.getProduct().getId().equals(request.getProductId()))
-				.findFirst();
-		
-		if( optItem.isEmpty()) {
-			throw new IllegalArgumentException("SEPETTE BU ÜRÜNDEN YOK!!!");
-		}
-		
-		CartItem cartItem = optItem.get();
-		BigDecimal oldPrice = product.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity()));
-		BigDecimal newPrice = product.getPrice().multiply(BigDecimal.valueOf(request.getQuantity()));
-		
+		CartItem cartItem = findCartItem(cart, request.getProductId());
 		cartItem.setQuantity(request.getQuantity());
-		cart.setTotalPrice(cart.getTotalPrice().subtract(oldPrice).add(newPrice));
+		updateCartTotalPrice(cart, null, 0, OperationType.CHANGE);
 	}
 	
 	@Transactional
 	public void emptyCartByCustomerId(EmptyCartRequest request) {
-		Customer customer = customerRepository.findById(request.getCustomerId())
-				.orElseThrow(() -> new IllegalArgumentException("KULLANICI BULUNAMADI!!!"));
-		
-		//müşterinin sepetini çektim ve boşalttım.
+		Customer customer = validateCustomer(request.getCustomerId());
+	
 		Cart cart = customer.getCart();
 		cart.getItems().clear();
 		cart.setTotalPrice(BigDecimal.ZERO);
-		customerRepository.save(customer); // Bu satır veritabanını günceller
-		
+		customerRepository.save(customer); // updates database
 	}
 	
+	private Customer validateCustomer(Long customerId) {
+	    return customerRepository.findById(customerId)
+	        .orElseThrow(() -> new IllegalArgumentException("NO CUSTOMER FOUND!!!"));
+	}
+	
+	private Product validateProduct(Long productId) {
+	    return productRepository.findById(productId)
+	        .orElseThrow(() -> new IllegalArgumentException("NO PRODUCT FOUND!!!"));
+	}
+	
+	private void addOrCreateCartItem(Cart cart, Product product, int quantity) {
+		//if the product we are adding is already in the cart, we just need to increase its number.
+		Optional<CartItem> existingItemOptional = cart.getItems().stream()
+			.filter( item -> item.getProduct().getId().equals(product.getId()))
+			.findFirst();
+				
+			if(existingItemOptional.isPresent()) {
+				CartItem existItem = existingItemOptional.get();
+				existItem.setQuantity(existItem.getQuantity() +quantity);
+			}else{
+				CartItem newItem = new CartItem();
+				newItem.setQuantity(quantity);
+				newItem.setProduct(product);//product and cart fields are derived from their own classes
+				newItem.setCart(cart);
+				cart.getItems().add(newItem);//There is a list of objects derived from cart class, here I added to the list.
+			}
+	}
+	
+	private CartItem findCartItem(Cart cart, Long productId) {
+	    return cart.getItems().stream()
+	            .filter(item -> item.getProduct().getId().equals(productId))
+	            .findFirst()
+	            .orElseThrow(() -> new IllegalArgumentException("THIS PRODUCT WAS NOT FOUND IN CART!!!"));
+	}
+	
+	private void updateCartItemQuantityOrRemove(Cart cart, CartItem cartItem, int quantity) {
+		if(cartItem.getQuantity() < quantity) {
+			throw new IllegalArgumentException("NOT THIS MANY ITEMS IN THE CART!!!");
+		}
+		cartItem.setQuantity(cartItem.getQuantity() - quantity);//the name is removed if there is no more product in the cart
+		if(cartItem.getQuantity() == 0) {
+			cart.getItems().remove(cartItem);
+		}
+	}
+
+	private void updateCartTotalPrice(Cart cart, Product product, int quantity, OperationType operation) {
+		
+		switch(operation) {
+			case ADD -> {
+				BigDecimal amount = product.getPrice().multiply(BigDecimal.valueOf(quantity));
+				cart.setTotalPrice(cart.getTotalPrice().add(amount));
+			}
+			case SUBTRACT -> {
+				BigDecimal amount = product.getPrice().multiply(BigDecimal.valueOf(quantity));
+				cart.setTotalPrice(cart.getTotalPrice().subtract(amount));
+			}
+			case CHANGE -> {
+				BigDecimal newTotal = cart.getItems().stream()
+	                .map(item -> item.getProduct().getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+	                .reduce(BigDecimal.ZERO, BigDecimal::add);
+	            cart.setTotalPrice(newTotal);
+			}
+		}
+	}
 }

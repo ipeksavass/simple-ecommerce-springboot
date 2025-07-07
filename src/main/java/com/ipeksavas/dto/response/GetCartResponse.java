@@ -3,8 +3,6 @@ package com.ipeksavas.dto.response;
 import java.math.BigDecimal;
 import java.util.List;
 
-import com.ipeksavas.model.CartItem;
-
 import lombok.Getter;
 import lombok.Setter;
 
@@ -14,8 +12,7 @@ public class GetCartResponse {
 	private BigDecimal totalPrice;
 	private List<CartItemDto> items;
 	
-	
-	//sadece cart item görüntülemede kullanılıcağı için iç içe yazdım.
+	//I wrote it nested because it will only be used in cart item display.
 	@Getter
 	@Setter
 	public static class CartItemDto{

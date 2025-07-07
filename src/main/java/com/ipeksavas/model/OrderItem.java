@@ -21,10 +21,10 @@ import lombok.Setter;
 public class OrderItem extends BaseEntity{
 	
 	@Column(name = "quantity")
-	private int quantity; //urun adedi
+	private int quantity; 
 	
 	@Column(name = "price_at_purchase", nullable = false)
-	private BigDecimal priceAtPurchase;//urunun alindigindaki fiyati
+	private BigDecimal priceAtPurchase;
 	
 	@ManyToOne 
 	@JoinColumn(name = "product_id")

@@ -13,8 +13,8 @@ public class GetAllOrdersResponse {
 	
 	@Setter
 	@Getter
-	public static class OrderDto{//İç sınıfın bağımsızlığını sağlamak için static keywordü kullanıldı.
-		//Siparişin genel bilgileri için bir dto tanımladım.
+	public static class OrderDto{//The static keyword is used to ensure the independence of the inner class.
+		//I defined a dto for the general information of the order.
 		private Long orderId;
 		private BigDecimal totalPrice;
 		private String createdAt;
@@ -24,7 +24,7 @@ public class GetAllOrdersResponse {
 	@Setter
 	@Getter
 	public static class OrderItemDto{
-		//Siparişin bir ürününe ait bilgileri tutması için bir dto tanımladım.
+		//I defined a dto to hold the information for one product of the order.
 		private String productName;
 		private BigDecimal priceAtPurchase;
 		private int quantity;
