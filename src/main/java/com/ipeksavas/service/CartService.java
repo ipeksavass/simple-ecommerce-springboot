@@ -76,7 +76,13 @@ public class CartService {
 		Cart cart = customer.getCart();
 		
 		CartItem cartItem = findCartItem(cart, product.getId());
-		updateCartItemQuantityOrRemove(cart, cartItem, request.getQuantity());
+		if(cartItem.getQuantity() < request.getQuantity()) {
+			throw new IllegalArgumentException("NOT THIS MANY ITEMS IN THE CART!!!");
+		}
+		cartItem.setQuantity(cartItem.getQuantity() - request.getQuantity());//the name is removed if there is no more product in the cart
+		if(cartItem.getQuantity() == 0) {
+			cart.getItems().remove(cartItem);
+		}
 		updateCartTotalPrice(cart, product, request.getQuantity(),OperationType.SUBTRACT);
 	}
 	
@@ -134,16 +140,6 @@ public class CartService {
 	            .filter(item -> item.getProduct().getId().equals(productId))
 	            .findFirst()
 	            .orElseThrow(() -> new IllegalArgumentException("THIS PRODUCT WAS NOT FOUND IN CART!!!"));
-	}
-	
-	private void updateCartItemQuantityOrRemove(Cart cart, CartItem cartItem, int quantity) {
-		if(cartItem.getQuantity() < quantity) {
-			throw new IllegalArgumentException("NOT THIS MANY ITEMS IN THE CART!!!");
-		}
-		cartItem.setQuantity(cartItem.getQuantity() - quantity);//the name is removed if there is no more product in the cart
-		if(cartItem.getQuantity() == 0) {
-			cart.getItems().remove(cartItem);
-		}
 	}
 
 	private void updateCartTotalPrice(Cart cart, Product product, int quantity, OperationType operation) {
