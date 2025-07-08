@@ -33,8 +33,7 @@ public class ProductService {
 	}
 	
 	public ProductResponse getProductById(Long productId) {
-		Product product = productRepository.findById(productId)
-				.orElseThrow(() -> new IllegalArgumentException("PRODUCT NOT FOUND"));
+		Product product = validateProduct(productId);
 		
 		ProductResponse response = new ProductResponse();
 		response.setName(product.getName());
@@ -44,8 +43,7 @@ public class ProductService {
 	}
 	
 	public void updateProductById(Long id, UpdateProductRequest request) {
-		Product product = productRepository.findById(id)
-				.orElseThrow(() -> new IllegalArgumentException("PRODUCT NOT FOUND"));
+		Product product = validateProduct(id);
 		
 		product.setName(request.getName());
 		product.setPrice(request.getPrice());
@@ -55,12 +53,16 @@ public class ProductService {
 	}
 	
 	public void deleteProductById(Long productId) {
-		Product product = productRepository.findById(productId)
-				.orElseThrow(() -> new IllegalArgumentException("PRODUCT NOT FOUND"));
+		Product product = validateProduct(productId);
 		
 		//A product cannot be deleted directly from the product table, it must first be removed from the baskets
 		List<CartItem> relatedCartItems = cartItemRepository.findByProductId(productId);
 		cartItemRepository.deleteAll(relatedCartItems);
 		productRepository.delete(product);
+	}
+	
+	private Product validateProduct(Long productId) {
+		return productRepository.findById(productId)
+				.orElseThrow(() -> new IllegalArgumentException("PRODUCT NOT FOUND"));
 	}
 }
