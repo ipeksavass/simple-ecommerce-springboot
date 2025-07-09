@@ -11,6 +11,7 @@ import com.ipeksavas.dto.request.EmptyCartRequest;
 import com.ipeksavas.dto.request.RemoveProductFromCartRequest;
 import com.ipeksavas.dto.request.UpdateCartRequest;
 import com.ipeksavas.dto.response.GetCartResponse;
+import com.ipeksavas.mapper.CartMapper;
 import com.ipeksavas.model.Cart;
 import com.ipeksavas.model.CartItem;
 import com.ipeksavas.model.Customer;
@@ -56,15 +57,9 @@ public class CartService {
 		
 		//type conversion
 		List<GetCartResponse.CartItemDto> itemDto = cart.getItems().stream()
-				.map(item -> {
-					GetCartResponse.CartItemDto dto = new GetCartResponse.CartItemDto();
-					
-					dto.setProductName(item.getProduct().getName());
-					dto.setUnitPrice(item.getProduct().getPrice());
-					dto.setQuantity(item.getQuantity());
-					return dto;
-				})
+				.map(CartMapper::mapToCartItemDto)
 				.toList();
+		
 		response.setItems(itemDto);
 		return response;
 	}
