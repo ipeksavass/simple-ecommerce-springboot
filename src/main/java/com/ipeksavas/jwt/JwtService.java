@@ -27,11 +27,11 @@ public class JwtService {
         return Jwts
                 .builder()
                 .setClaims(extraClaims)
-                .setSubject(userDetails.getUsername()) // username'i subject olarak ayarlar
-                .setIssuedAt(new Date(System.currentTimeMillis())) // token oluşturulma zamanı
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24)) // 24 saatlik geçerlilik
+                .setSubject(userDetails.getUsername())
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24))
                 .signWith(getSignInKey(), SignatureAlgorithm.HS256)
-                .compact(); // token string'i üret
+                .compact();
     }
 
     public String extractUsername(String token) {
